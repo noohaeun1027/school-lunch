@@ -1,0 +1,105 @@
+from datetime import datetime
+import re
+import pytz
+import requests
+import streamlit as st
+
+# 페이지 기본 설정
+st.set_page_config(
+    page_title="우리 학교 달력별 급식", page_icon="📅", layout="centered"
+)
+
+st.title("📅 우리 학교 달력별 급식")
+st.caption("송탄고등학교 전용 급식 및 디저트 조회 페이지")
+
+# 송탄고등학교 고정 정보 (나이스 개방 포털 문서 기준)
+MEAL_INFO_URL = "https://open.neis.go.kr/hub/mealServiceDietInfo"
+OFFICE_CODE = "J10"  # 경기도교육청
+SCHOOL_CODE = "7530480"  # 송탄고등학교
+
+
+# 급식 정보 조회 함수
+def get_songtan_meal(date_str):
+    params = {
+        "Type": "json",
+        "ATPT_OFCDC_SC_CODE": OFFICE_CODE,
+        "SD_SCHUL_CODE": SCHOOL_CODE,
+        "MMEAL_SC_CODE": "2",  # 중식
+        "MLSV_FROM_YMD": date_str,
+        "MLSV_TO_YMD": date_str,
+    }
+
+    try:
+        response = requests.get(MEAL_INFO_URL, params=params, timeout=5)
+        data = response.json()
+
+        if "mealServiceDietInfo" in data:
+            rows = data["mealServiceDietInfo"][1]["row"]
+            if rows:
+                return rows[0]
+        return None
+    except Exception:
+        return None
+
+
+# 메뉴에서 알레르기 번호 제거 함수
+def remove_allergy_info(menu_item):
+    # 괄호와 안의 숫자/점(예: (1.2.5)) 제거
+    return re.sub(r"\([0-9\.]+\)", "", menu_item).strip()
+
+
+# --- UI 레이아웃 ---
+
+# 한국 시간(KST) 기준 오늘 날짜 설정
+kst = pytz.timezone("Asia/Seoul")
+today_kst = datetime.now(kst).date()
+
+# 컨트롤 영역: 날짜 선택과 알레르기 스위치를 나란히 배치
+col_date, col_toggle = st.columns([2, 1], vertical_alignment="bottom")
+
+with col_date:
+    selected_date = st.date_input("날짜 선택", value=today_kst)
+
+with col_toggle:
+    show_allergy = st.toggle("알레르기 정보 보기", value=True)
+
+st.divider()
+
+# 선택한 날짜 급식 데이터 조회
+date_str = selected_date.strftime("%Y%m%d")
+meal_data = get_songtan_meal(date_str)
+
+if meal_data:
+    # 메뉴 정제 (<br/> 기준 분리)
+    raw_menu_str = meal_data.get("DDISH_NM", "")
+    items = raw_menu_str.split("<br/>")
+
+    # 알레르기 정보 표시 여부에 따른 메뉴 리스트 처리
+    display_items = []
+    for item in items:
+        item_clean = item.strip()
+        if not item_clean:
+            continue
+        if not show_allergy:
+            item_clean = remove_allergy_info(item_clean)
+        display_items.append(item_clean)
+
+    calorie_info = meal_data.get("CAL_INFO", "정보 없음")
+
+    # 큰 숫자 카드 (메뉴 가짓수 & 칼로리)
+    m1, m2 = st.columns(2)
+    m1.metric(label="총 반찬/메뉴 수", value=f"{len(display_items)}개")
+    m2.metric(label="오늘의 칼로리", value=calorie_info)
+
+    st.markdown("### 🍽️ 오늘의 식단 메뉴")
+
+    # 메뉴를 카드(st.container) 형태로 나란히 배치 (3열 배치)
+    cols = st.columns(3)
+    for index, menu in enumerate(display_items):
+        col = cols[index % 3]
+        with col:
+            with st.container(border=True):
+                st.markdown(f"**{menu}**")
+
+else:
+    st.info("💡 급식이 없는 날입니다.")
