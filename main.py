@@ -11,9 +11,12 @@ st.set_page_config(
 # --- [추가] 사이드바에 페이지 이동 링크 및 안내 배치 ---
 st.sidebar.title("📌 페이지 이동")
 st.sidebar.page_link("main.py", label="🏫 학교 검색 (메인)", icon="🏠")
+st.sidebar.title("📌 페이지 이동")
+st.sidebar.page_link("main.py", label="🏫 학교 검색 (메인)", icon="🏠")
 st.sidebar.page_link(
-    "pages/1_디저트_급식.py", label="🧁 송탄고 디저트 분석", icon="📅"
+    "1_디저트_급식.py", label="🧁 송탄고 디저트 분석", icon="📅"
 )
+st.sidebar.divider()
 st.sidebar.divider()
 st.sidebar.info(
     "왼쪽 메뉴에서 이동하고 싶은 페이지를 클릭하세요!"
