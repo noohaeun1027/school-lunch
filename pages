@@ -100,6 +100,10 @@ if meal_data:
         with col:
             with st.container(border=True):
                 st.markdown(f"**{menu}**")
-
 else:
     st.info("💡 급식이 없는 날입니다.")
+my_app/
+├── main.py
+├── requirements.txt
+└── pages/
+    └── 1_달력별_급식.py
