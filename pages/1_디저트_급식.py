@@ -1,3 +1,10 @@
+st.sidebar.title("📌 페이지 이동")
+st.sidebar.page_link("main.py", label="🏫 학교 검색 (메인)", icon="🏠")
+st.sidebar.page_link(
+    "1_디저트_급식.py", label="🧁 송탄고 디저트 분석", icon="📅"
+)
+st.sidebar.divider()
+
 import calendar
 from datetime import datetime
 import re
