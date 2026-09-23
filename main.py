@@ -8,13 +8,13 @@ st.set_page_config(
     page_title="학교 급식 알아보기", page_icon="🏫", layout="centered"
 )
 
-# 사이드바 이동 링크
+# 사이드바 안내 및 페이지 이동
 st.sidebar.title("📌 페이지 이동")
-st.sidebar.page_link("main.py", label="🏫 학교 검색 (메인)", icon="🏠")
 st.sidebar.page_link(
     "pages/1_dessert.py", label="🧁 송탄고 디저트 분석", icon="📊"
 )
 st.sidebar.divider()
+st.sidebar.info("왼쪽 메뉴에서 이동할 페이지를 선택하세요.")
 
 st.title("🏫 학교 급식 알아보기")
 
@@ -104,7 +104,7 @@ if search_input:
 
 st.divider()
 
-# 한국 시간(KST) 오늘 날짜
+# 한국 시간(KST) 오늘 날짜 설정
 kst = pytz.timezone("Asia/Seoul")
 today_kst = datetime.now(kst).date()
 
