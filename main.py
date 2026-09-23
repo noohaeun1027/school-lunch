@@ -8,16 +8,14 @@ st.set_page_config(
     page_title="학교 급식 알아보기", page_icon="🏫", layout="centered"
 )
 
-# --- [추가] 사이드바에 페이지 이동 링크 및 안내 배치 ---
+# 사이드바 이동 링크
 st.sidebar.title("📌 페이지 이동")
-st.sidebar.title("📌 페이지 이동")
-st.sidebar.divider()
-st.sidebar.divider()
-st.sidebar.info(
-    "왼쪽 메뉴에서 이동하고 싶은 페이지를 클릭하세요!"
+st.sidebar.page_link("main.py", label="🏫 학교 검색 (메인)", icon="🏠")
+st.sidebar.page_link(
+    "pages/1_dessert.py", label="🧁 송탄고 디저트 분석", icon="📊"
 )
+st.sidebar.divider()
 
-# 메인 화면 타이틀
 st.title("🏫 학교 급식 알아보기")
 
 # NEIS API Base URLs
@@ -27,26 +25,9 @@ MEAL_INFO_URL = "https://open.neis.go.kr/hub/mealServiceDietInfo"
 
 # 1. 학교 이름 변환 함수 (약어 처리)
 def get_search_keywords(school_name):
-    """원래 이름과 약어를 풀어서 만든 대체 이름을 반환합니다."""
     keywords = [school_name.strip()]
+    temp_name = school_name.strip()
 
-    replaced = school_name.strip()
-    replacements = [
-        ("여자고등학교", "여자고등학교"),
-        ("여자중학교", "여자중학교"),
-        ("여고", "여자고등학교"),
-        ("여중", "여자중학교"),
-        ("남고", "남자고등학교"),
-        ("남중", "남자중학교"),
-        ("고등학교", "고등학교"),
-        ("중학교", "중학교"),
-        ("초등학교", "초등학교"),
-        ("고", "고등학교"),
-        ("중", "중학교"),
-        ("초", "초등학교"),
-    ]
-
-    temp_name = replaced
     if "여고" in temp_name:
         temp_name = temp_name.replace("여고", "여자고등학교")
     elif "고" in temp_name and not temp_name.endswith("고등학교"):
@@ -65,10 +46,8 @@ def search_school(keyword):
     try:
         response = requests.get(SCHOOL_INFO_URL, params=params, timeout=5)
         data = response.json()
-
         if "schoolInfo" in data:
-            rows = data["schoolInfo"][1]["row"]
-            return rows
+            return data["schoolInfo"][1]["row"]
         return []
     except Exception:
         return []
@@ -84,11 +63,9 @@ def get_meal_info(office_code, school_code, date_str):
         "MLSV_FROM_YMD": date_str,
         "MLSV_TO_YMD": date_str,
     }
-
     try:
         response = requests.get(MEAL_INFO_URL, params=params, timeout=5)
         data = response.json()
-
         if "mealServiceDietInfo" in data:
             rows = data["mealServiceDietInfo"][1]["row"]
             if rows:
@@ -99,8 +76,6 @@ def get_meal_info(office_code, school_code, date_str):
 
 
 # --- UI 레이아웃 ---
-
-# 학교 검색 입력
 search_input = st.text_input(
     "학교 이름을 입력하세요", placeholder="예: 수도여고, 서울고"
 )
@@ -110,7 +85,6 @@ selected_school = None
 if search_input:
     keywords = get_search_keywords(search_input)
     schools = []
-
     for kw in keywords:
         results = search_school(kw)
         if results:
@@ -123,7 +97,6 @@ if search_input:
         school_options = {
             f"{sch['SCHUL_NM']} ({sch['LCTN_SC_NM']})": sch for sch in schools
         }
-
         selected_label = st.selectbox(
             "학교를 선택하세요", options=list(school_options.keys())
         )
@@ -131,16 +104,14 @@ if search_input:
 
 st.divider()
 
-# 날짜 선택 (한국 시간 KST 기준 오늘 날짜)
+# 한국 시간(KST) 오늘 날짜
 kst = pytz.timezone("Asia/Seoul")
 today_kst = datetime.now(kst).date()
 
 selected_date = st.date_input("날짜 선택", value=today_kst)
 
-# 급식 조회 버튼 및 결과 출력
 if selected_school:
     date_str = selected_date.strftime("%Y%m%d")
-
     meal_data = get_meal_info(
         selected_school["ATPT_OFCDC_SC_CODE"],
         selected_school["SD_SCHUL_CODE"],
