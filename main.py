@@ -8,6 +8,18 @@ st.set_page_config(
     page_title="학교 급식 알아보기", page_icon="🏫", layout="centered"
 )
 
+# --- [추가] 사이드바에 페이지 이동 링크 및 안내 배치 ---
+st.sidebar.title("📌 페이지 이동")
+st.sidebar.page_link("main.py", label="🏫 학교 검색 (메인)", icon="🏠")
+st.sidebar.page_link(
+    "pages/1_디저트_급식.py", label="🧁 송탄고 디저트 분석", icon="📅"
+)
+st.sidebar.divider()
+st.sidebar.info(
+    "왼쪽 메뉴에서 이동하고 싶은 페이지를 클릭하세요!"
+)
+
+# 메인 화면 타이틀
 st.title("🏫 학교 급식 알아보기")
 
 # NEIS API Base URLs
@@ -21,9 +33,8 @@ def get_search_keywords(school_name):
     keywords = [school_name.strip()]
 
     replaced = school_name.strip()
-    # 긴 단어부터 순서대로 변환
     replacements = [
-        ("여자고등학교", "여자고등학교"),  # 이미 풀어진 경우 제외
+        ("여자고등학교", "여자고등학교"),
         ("여자중학교", "여자중학교"),
         ("여고", "여자고등학교"),
         ("여중", "여자중학교"),
@@ -37,12 +48,10 @@ def get_search_keywords(school_name):
         ("초", "초등학교"),
     ]
 
-    # 단순 문자열 치환
     temp_name = replaced
     if "여고" in temp_name:
         temp_name = temp_name.replace("여고", "여자고등학교")
     elif "고" in temp_name and not temp_name.endswith("고등학교"):
-        # 단어 끝이 '고'로 끝나거나 '고'가 포함된 약어 처리
         if temp_name.endswith("고"):
             temp_name = temp_name[:-1] + "고등학교"
 
@@ -101,7 +110,6 @@ search_input = st.text_input(
 selected_school = None
 
 if search_input:
-    # 약어 변환을 포함하여 검색 시도
     keywords = get_search_keywords(search_input)
     schools = []
 
@@ -114,7 +122,6 @@ if search_input:
     if not schools:
         st.warning("입력한 이름으로 학교를 찾을 수 없습니다.")
     else:
-        # 학교 선택 드롭다운 (학교명 - 지역 표시)
         school_options = {
             f"{sch['SCHUL_NM']} ({sch['LCTN_SC_NM']})": sch for sch in schools
         }
@@ -147,7 +154,6 @@ if selected_school:
     )
 
     if meal_data:
-        # <br/> 태그를 줄바꿈으로 변환하여 식단 표시
         raw_menu = meal_data.get("DDISH_NM", "")
         formatted_menu = raw_menu.replace("<br/>", "\n")
         calorie_info = meal_data.get("CAL_INFO", "정보 없음")
