@@ -1,6 +1,3 @@
-st.sidebar.title("📌 페이지 이동")
-st.sidebar.divider()
-
 import calendar
 from datetime import datetime
 import re
@@ -10,18 +7,26 @@ import streamlit as st
 
 # 페이지 기본 설정
 st.set_page_config(
-    page_title="한 달 중 디저트는 몇 번?", page_icon="🧁", layout="centered"
+    page_title="송탄고 한 달 디저트 통계", page_icon="🧁", layout="centered"
 )
 
-st.title("🧁 송탄고 한 달 디저트 탐험")
-st.caption("송탄고등학교 월별 디저트 빈도 분석 및 달력 급식 조회")
+# 사이드바 이동 링크
+st.sidebar.title("📌 페이지 이동")
+st.sidebar.page_link("main.py", label="🏫 학교 검색 (메인)", icon="🏠")
+st.sidebar.page_link(
+    "pages/1_dessert.py", label="🧁 송탄고 디저트 분석", icon="📊"
+)
+st.sidebar.divider()
 
-# 송탄고등학교 고정 정보 (나이스 개방 포털 문서 기준)
+st.title("🧁 송탄고 한 달 디저트 분석")
+st.caption("송탄고등학교 월별 디저트 빈도 분석 및 급식 조회")
+
+# 송탄고등학교 고정 정보 (나이스 개방 포털 기준)
 MEAL_INFO_URL = "https://open.neis.go.kr/hub/mealServiceDietInfo"
 OFFICE_CODE = "J10"  # 경기도교육청
 SCHOOL_CODE = "7530480"  # 송탄고등학교
 
-# 디저트 판별 키워드 목록
+# 디저트 판별 키워드
 DESSERT_KEYWORDS = [
     "케이크",
     "케익",
@@ -68,18 +73,15 @@ DESSERT_KEYWORDS = [
 ]
 
 
-# 메뉴에서 알레르기 번호 제거 함수
 def remove_allergy_info(menu_item):
     return re.sub(r"\([0-9\.]+\)", "", menu_item).strip()
 
 
-# 메뉴명이 디저트에 해당하는지 판별하는 함수
 def is_dessert(menu_name):
     clean_name = remove_allergy_info(menu_name)
     return any(keyword in clean_name for keyword in DESSERT_KEYWORDS)
 
 
-# 선택한 월 전체의 급식 정보를 가져오는 함수
 @st.cache_data(ttl=3600)
 def get_monthly_meals(year, month):
     _, last_day = calendar.monthrange(year, month)
@@ -90,16 +92,15 @@ def get_monthly_meals(year, month):
         "Type": "json",
         "ATPT_OFCDC_SC_CODE": OFFICE_CODE,
         "SD_SCHUL_CODE": SCHOOL_CODE,
-        "MMEAL_SC_CODE": "2",  # 중식
+        "MMEAL_SC_CODE": "2",
         "MLSV_FROM_YMD": from_ymd,
         "MLSV_TO_YMD": to_ymd,
-        "pSize": 100,  # 한 달 급식 데이터 전체 수신
+        "pSize": 100,
     }
 
     try:
         response = requests.get(MEAL_INFO_URL, params=params, timeout=5)
         data = response.json()
-
         if "mealServiceDietInfo" in data:
             rows = data["mealServiceDietInfo"][1]["row"]
             return {row["MLSV_YMD"]: row for row in rows}
@@ -108,12 +109,10 @@ def get_monthly_meals(year, month):
         return {}
 
 
-# --- UI 레이아웃 ---
-
+# UI 컨트롤
 kst = pytz.timezone("Asia/Seoul")
 today_kst = datetime.now(kst).date()
 
-# 상단 입력 컨트롤 영역 (날짜 및 알레르기 스위치 나란히 배치)
 col_date, col_toggle = st.columns([2, 1], vertical_alignment="bottom")
 
 with col_date:
@@ -124,43 +123,40 @@ with col_toggle:
 
 st.divider()
 
-# 선택한 날짜 기준 연도/월/일 파싱
 year = selected_date.year
 month = selected_date.month
 date_str = selected_date.strftime("%Y%m%d")
 
-# 해당 월 전체 급식 데이터 조회
+# 해당 월 데이터 로드
 monthly_meals = get_monthly_meals(year, month)
 
-# 1. 월간 디저트 통계 계산
+# 1. 한 달 디저트 통계
 total_meal_days = len(monthly_meals)
 dessert_days_count = 0
 
 for day_data in monthly_meals.values():
     raw_menu = day_data.get("DDISH_NM", "")
     items = raw_menu.split("<br/>")
-    # 그날 디저트가 하나라도 포함되어 있는지 검사
     if any(is_dessert(item) for item in items if item.strip()):
         dessert_days_count += 1
 
-# 디저트 통계 지표 카드 출력
 st.subheader(f"📊 {year}년 {month}월 디저트 통계")
 m1, m2 = st.columns(2)
-m1.metric(label=f"{month}월 급식 제공일", value=f"{total_meal_days}일")
+m1.metric(label=f"{month}월 총 급식 제공일", value=f"{total_meal_days}일")
 m2.metric(
     label=f"{month}월 디저트 나온 횟수",
     value=f"{dessert_days_count}회",
-    delta=f"제공률 {round(dessert_days_count / total_meal_days * 100, 1)}%"
+    delta=f"제공 비율 {round(dessert_days_count / total_meal_days * 100, 1)}%"
     if total_meal_days > 0
     else "0%",
 )
 
 st.divider()
 
-# 2. 선택한 날짜의 상세 급식 보기
+# 2. 선택 날짜 급식 카드
 meal_data = monthly_meals.get(date_str)
 
-st.subheader(f"🍽️ {selected_date.strftime('%Y년 %m월 %d일')} 메뉴 카드")
+st.subheader(f"🍽️ {selected_date.strftime('%Y년 %m월 %d일')} 급식 메뉴")
 
 if meal_data:
     raw_menu_str = meal_data.get("DDISH_NM", "")
@@ -178,13 +174,11 @@ if meal_data:
 
     calorie_info = meal_data.get("CAL_INFO", "정보 없음")
 
-    # 오늘 나온 디저트가 있다면 상단에 강조 표시
     if today_desserts:
         st.success(f"🧁 오늘 나온 디저트: **{', '.join(today_desserts)}**")
 
     st.caption(f"⚡ **오늘의 칼로리:** {calorie_info}")
 
-    # 메뉴 가짓수와 식단 카드를 3열로 정렬하여 표시
     cols = st.columns(3)
     for index, menu in enumerate(display_items):
         col = cols[index % 3]
